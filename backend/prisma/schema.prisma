@@ -1,0 +1,54 @@
+// backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. El Atleta
+model Athlete {
+  id        Int      @id @default(autoincrement())
+  no_dorsal Int      @unique // El número en el pecho
+  nombre    String
+  equipo    String?  // País o Club
+  creadoEn  DateTime @default(now())
+  
+  resultados Result[]
+}
+
+// 2. Eventos de Atletismo (Corregido)
+model Athletics_Events {
+  id        Int      @id @default(autoincrement())
+  nombre    String   // Ej: "Final 100m Varonil"
+  estado    RaceStatus @default(PENDING) // <--- ¡AQUÍ ESTABA EL ERROR! (Decía EventStatus)
+  fecha     DateTime @default(now())
+  
+  resultados Result[]
+}
+
+// 3. Resultados
+model Result {
+  id        Int      @id @default(autoincrement())
+  carril    Int
+  tiempo    Float?
+  posicion  Int?
+  
+  atleta    Athlete @relation(fields: [atletaId], references: [id])
+  atletaId  Int
+  
+  carrera   Athletics_Events @relation(fields: [carreraId], references: [id])
+  carreraId Int
+
+  @@unique([carreraId, carril]) 
+}
+
+// Enum
+enum RaceStatus {
+  PENDING
+  LIVE
+  FINISHED
+}
