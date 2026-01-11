@@ -1,5 +1,6 @@
 // backend/prisma/schema.prisma
 
+// 1. ESTO ES LO QUE FALTABA (Configuración)
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,28 +10,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 1. El Atleta
+// 2. TUS MODELOS NUEVOS
+
+// La Competencia General (El Padre)
+// Ej: "100m Planos Varonil", "400m Relevos"
+model Competition {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  genero    String?  // "M" o "F"
+  
+  // Relación: Una competencia tiene muchos Hits/Carreras hijas
+  races     Race[]   
+}
+
+// La Carrera/Hit específico (El Hijo)
+// Ej: "Hit 1", "Semifinal", "Final"
+model Race {
+  id            Int         @id @default(autoincrement())
+  nombre        String      // Ej: "Hit 1"
+  estado        RaceStatus  @default(PENDING)
+  fecha         DateTime    @default(now())
+  
+  // Relación con el Padre (Competencia)
+  competencia   Competition @relation(fields: [competenciaId], references: [id])
+  competenciaId Int
+
+  // Relación con los resultados (Los 8 carriles de ESTE hit)
+  resultados    Result[]
+}
+
+// Atletas
 model Athlete {
   id        Int      @id @default(autoincrement())
-  no_dorsal Int      @unique // El número en el pecho
+  no_dorsal Int      @unique
   nombre    String
-  equipo    String?  // País o Club
+  equipo    String?
   creadoEn  DateTime @default(now())
   
   resultados Result[]
 }
 
-// 2. Eventos de Atletismo (Corregido)
-model Athletics_Events {
-  id        Int      @id @default(autoincrement())
-  nombre    String   // Ej: "Final 100m Varonil"
-  estado    RaceStatus @default(PENDING) // <--- ¡AQUÍ ESTABA EL ERROR! (Decía EventStatus)
-  fecha     DateTime @default(now())
-  
-  resultados Result[]
-}
-
-// 3. Resultados
+// Resultados
 model Result {
   id        Int      @id @default(autoincrement())
   carril    Int
@@ -40,13 +60,12 @@ model Result {
   atleta    Athlete @relation(fields: [atletaId], references: [id])
   atletaId  Int
   
-  carrera   Athletics_Events @relation(fields: [carreraId], references: [id])
+  carrera   Race    @relation(fields: [carreraId], references: [id])
   carreraId Int
 
   @@unique([carreraId, carril]) 
 }
 
-// Enum
 enum RaceStatus {
   PENDING
   LIVE
